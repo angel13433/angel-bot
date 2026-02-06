@@ -1,0 +1,16 @@
+{
+  "name": "angelbot",
+  "version": "1.0.0",
+  "description": "Bot para mantener Aternos online",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "mineflayer": "^4.20.0"
+  }
+}
