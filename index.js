@@ -1,66 +1,81 @@
 import mineflayer from 'mineflayer';
 import http from 'http';
+import dns from 'dns';
 
-// --- 1. SERVIDOR PARA RENDER (EVITA QUE SE APAGUE) ---
+// --- SERVIDOR PARA RENDER ---
 http.createServer((req, res) => {
-  res.write("Angel_Bot: Sistema Anti-AFK Pro detectado.");
+  res.write("Angel_Bot Status: 24/7 Monitoring & Reconnect Active");
   res.end();
-}).listen(10000); 
+}).listen(10000);
 
-console.log(">>> INICIANDO PRUEBA CON IP FIJA Y ROTACIÓN DE CABEZA <<<");
+const fixedHost = 'Angel_machado_s.aternos.me';
+const port = 30447;
+let lastIp = null; // Para rastrear cambios
 
-const botOptions = {
-  host: 'Angel_machado_s.aternos.me', 
-  port: 30447,
-  username: 'Angel_Bot',
-  version: '1.21.1',
-  checkTimeoutInterval: 120000, 
-  chat_signatures: false,
-  viewDistance: 'tiny'
-};
+console.log(">>> SISTEMA DE MONITOREO DE IP Y AFK INICIADO <<<");
 
 function createBot() {
-  const bot = mineflayer.createBot(botOptions);
-
-  bot.on('spawn', () => {
-    console.log(">>> BOT CONECTADO <<<");
-    console.log("TIP: Asegúrate de que el bot tenga /op para evitar el kick por movimiento.");
-    
-    bot.setControlState('sneak', true);
-
-    // RUTINA HUMANOIDE: Cambia cada 20-40 segundos (tiempo aleatorio)
-    setInterval(() => {
-      if (bot.entity) {
-        // 1. Salto de presencia
-        bot.setControlState('jump', true);
-        setTimeout(() => bot.setControlState('jump', false), 500);
-
-        // 2. Mirar a un punto aleatorio (Simula que el jugador mira el entorno)
-        const randomYaw = (Math.random() - 0.5) * Math.PI * 2;   // Gira a los lados
-        const randomPitch = (Math.random() - 0.5) * Math.PI / 2; // Mira arriba/abajo
-        bot.look(randomYaw, randomPitch, false);
-        
-        console.log(">>> Acción AFK: Salto y rotación ejecutada.");
-      }
-    }, 30000); 
-  });
-
-  // Reconexión si Aternos cierra la sesión
-  bot.on('end', (reason) => {
-    console.log(`Bot desconectado (${reason}). Reintentando entrar en 5 segundos...`);
-    bot.removeAllListeners();
-    setTimeout(createBot, 5000); 
-  });
-
-  bot.on('error', (err) => {
-    if (err.code === 'ECONNRESET') {
-      console.log("Aviso: Error de conexión con el host. Reintentando...");
-    } else {
-      console.log("Error de sistema:", err.message);
+  // 1. Rastreador de IP Dinámica
+  dns.lookup(fixedHost, (err, address) => {
+    if (err) {
+      console.log("⚠️ Error de DNS: Aternos podría estar offline. Reintentando en 15s...");
+      return setTimeout(createBot, 15000);
     }
+
+    // Si la IP cambió desde la última vez, nos avisa
+    if (lastIp && address !== lastIp) {
+      console.log(`🔔 ¡ALERTA! Aternos cambió la IP dinámica de ${lastIp} a ${address}`);
+    } else if (!lastIp) {
+      console.log(`✅ Conectando por primera vez a la IP: ${address}`);
+    }
+    lastIp = address;
+
+    const bot = mineflayer.createBot({
+      host: fixedHost,
+      port: port,
+      username: 'Angel_Bot',
+      version: '1.21.1',
+      checkTimeoutInterval: 60000,
+      hideErrors: true 
+    });
+
+    bot.on('spawn', () => {
+      console.log(">>> BOT DENTRO: Protegiendo servidor 24/7 <<<");
+      bot.setControlState('sneak', true);
+
+      // RUTINA ANTI-KICK (Variación de 30 a 50 segundos)
+      const afkInterval = setInterval(() => {
+        if (bot.entity) {
+          // Salto y rotación
+          bot.setControlState('jump', true);
+          setTimeout(() => bot.setControlState('jump', false), 500);
+          
+          const yaw = Math.random() * Math.PI * 2;
+          bot.look(yaw, 0);
+
+          // Comando de actividad para refrescar la sesión de Aternos
+          bot.chat("/help");
+          console.log(`[${new Date().toLocaleTimeString()}] Pulso de actividad enviado.`);
+        }
+      }, 35000 + Math.random() * 15000);
+
+      // Limpiar el intervalo si el bot se desconecta para no acumular procesos
+      bot.on('end', () => clearInterval(afkInterval));
+    });
+
+    bot.on('end', (reason) => {
+      console.log(`[!] Conexión terminada (${reason}). Buscando IP y reentrando en 10s...`);
+      setTimeout(createBot, 10000);
+    });
+
+    bot.on('error', (err) => {
+      if (err.code === 'ECONNRESET') return;
+      console.log("Error de conexión:", err.message);
+    });
   });
 }
 
 createBot();
+
 
 
