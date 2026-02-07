@@ -1,15 +1,14 @@
 import mineflayer from 'mineflayer';
 import http from 'http';
 
-// --- 1. SERVIDOR DE MANTENIMIENTO PARA RENDER ---
+// --- 1. SERVIDOR PARA RENDER (EVITA QUE SE APAGUE) ---
 http.createServer((req, res) => {
-  res.write("Angel_Bot esta operando con AFK activo.");
+  res.write("Angel_Bot: Sistema Anti-AFK Pro detectado.");
   res.end();
 }).listen(10000); 
 
-console.log(">>> SISTEMA ANTI-SUEÑO Y AFK ACTIVO <<<");
+console.log(">>> INICIANDO PRUEBA CON IP FIJA Y ROTACIÓN DE CABEZA <<<");
 
-// --- 2. CONFIGURACIÓN DEL BOT ---
 const botOptions = {
   host: 'Angel_machado_s.aternos.me', 
   port: 30447,
@@ -17,43 +16,51 @@ const botOptions = {
   version: '1.21.1',
   checkTimeoutInterval: 120000, 
   chat_signatures: false,
-  loadInternalPlugins: false, 
   viewDistance: 'tiny'
 };
 
 function createBot() {
   const bot = mineflayer.createBot(botOptions);
 
-  bot.on('inject_allowed', () => {
-    bot._client.on('packet', (data, metadata) => {
-      if (metadata.name.includes('chat') || metadata.name.includes('profile')) return true;
-    });
-  });
-
   bot.on('spawn', () => {
-    console.log(">>> BOT EN POSICIÓN: AFK INICIADO <<<");
+    console.log(">>> BOT CONECTADO <<<");
+    console.log("TIP: Asegúrate de que el bot tenga /op para evitar el kick por movimiento.");
+    
     bot.setControlState('sneak', true);
 
-    // RUTINA DE SALTO: Salta cada 30 segundos para evitar el kick por AFK
+    // RUTINA HUMANOIDE: Cambia cada 20-40 segundos (tiempo aleatorio)
     setInterval(() => {
       if (bot.entity) {
+        // 1. Salto de presencia
         bot.setControlState('jump', true);
         setTimeout(() => bot.setControlState('jump', false), 500);
+
+        // 2. Mirar a un punto aleatorio (Simula que el jugador mira el entorno)
+        const randomYaw = (Math.random() - 0.5) * Math.PI * 2;   // Gira a los lados
+        const randomPitch = (Math.random() - 0.5) * Math.PI / 2; // Mira arriba/abajo
+        bot.look(randomYaw, randomPitch, false);
+        
+        console.log(">>> Acción AFK: Salto y rotación ejecutada.");
       }
     }, 30000); 
   });
 
+  // Reconexión si Aternos cierra la sesión
   bot.on('end', (reason) => {
-    console.log(`Conexión perdida (${reason}). Reintentando en 2 segundos...`);
+    console.log(`Bot desconectado (${reason}). Reintentando entrar en 5 segundos...`);
     bot.removeAllListeners();
-    setTimeout(createBot, 2000); 
+    setTimeout(createBot, 5000); 
   });
 
   bot.on('error', (err) => {
-    if (err.code === 'ECONNRESET') return;
-    console.log("Error de red:", err.message);
+    if (err.code === 'ECONNRESET') {
+      console.log("Aviso: Error de conexión con el host. Reintentando...");
+    } else {
+      console.log("Error de sistema:", err.message);
+    }
   });
 }
 
 createBot();
+
 
